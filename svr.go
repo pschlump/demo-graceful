@@ -57,16 +57,12 @@ import (
 	"time"
 
 	"www.2c-why.com/jump-cloud/svr/HashString"
+	"www.2c-why.com/jump-cloud/svr/ReadCfg"
 )
 
 // "www.2c-why.com/jump-cloud/svr/HashString"
 
 var ShutdownStarted = false
-
-// Pull from Config File, these should be defaults
-
-var Port string = "localhost:8123"
-var SleepSeconds = 1 // xyzzy 5
 
 func SetHeadersForJSON(www http.ResponseWriter, req *http.Request) {
 	www.Header().Set("Content-Type", "application/json")
@@ -95,48 +91,57 @@ func respHandlerStatus(www http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func respHandlerSlow(www http.ResponseWriter, req *http.Request) {
-	if req.Method == "POST" || req.Method == "GET" {
-		req.ParseForm()
-		Password := req.Form.Get("password")
-		Fmt := req.Form.Get("fmt")
+func createRespHandlerSlow(SleepSeconds time.Duration) func(www http.ResponseWriter, req *http.Request) {
+	return func(www http.ResponseWriter, req *http.Request) {
+		if req.Method == "POST" || req.Method == "GET" {
+			req.ParseForm()
+			Password := req.Form.Get("password")
+			Fmt := req.Form.Get("fmt")
 
-		if db1 {
-			fmt.Println("password:", req.Form.Get("password"))
-			fmt.Println("Method:", req.Method)
-		}
-
-		if Password != "" {
-
-			time.Sleep(time.Duration(SleepSeconds) * time.Second)
-
-			hh := HashStrings512.HashByte512([]byte(Password))
-			ee := base64.StdEncoding.EncodeToString(hh)
-
-			if Fmt == "JSON" {
-				SetHeadersForJSON(www, req)
-				fmt.Fprintf(www, `{"status":"success","msg":"slow response","encoded":%q}`, ee)
-			} else {
-				SetHeadersNoCache(www, req)
-				fmt.Fprintf(www, "%s", ee)
+			if db1 {
+				fmt.Println("password:", req.Form.Get("password"))
+				fmt.Println("Method:", req.Method)
 			}
 
-			return
-		}
+			if Password != "" {
 
-		http.Error(www, "Password is a required, non-empty parameter", http.StatusBadRequest)
+				time.Sleep(SleepSeconds * time.Second)
+
+				hh := HashStrings512.HashByte512([]byte(Password))
+				ee := base64.StdEncoding.EncodeToString(hh)
+
+				if Fmt == "JSON" {
+					SetHeadersForJSON(www, req)
+					fmt.Fprintf(www, `{"status":"success","msg":"slow response","encoded":%q}`, ee)
+				} else {
+					SetHeadersNoCache(www, req)
+					fmt.Fprintf(www, "%s", ee)
+				}
+
+				return
+			}
+
+			http.Error(www, "Password is a required, non-empty parameter", http.StatusBadRequest)
+		}
+		http.Error(www, "This only responds to GET and POST requests.", http.StatusMethodNotAllowed)
 	}
-	http.Error(www, "This only responds to GET and POST requests.", http.StatusMethodNotAllowed)
 }
 
 // -------------------------------------------------------------------------------------------------
 func main() {
+
+	// xyzzy - Could use some command line ars at this point
+
+	cfg := ReadCfg.ReadCfg("./cfg.json")
+
 	http.HandleFunc("/api/graceful_shutdown", respHandlerShutdown)
 	http.HandleFunc("/api/shutdown", respHandlerShutdown)
 	http.HandleFunc("/api/status", respHandlerStatus)
-	http.HandleFunc("/", respHandlerSlow)
+	http.HandleFunc("/", createRespHandlerSlow(cfg.SleepTime))
 
-	log.Fatal(http.ListenAndServe(Port, nil))
+	log.Fatal(http.ListenAndServe(cfg.HostPort, nil))
 }
 
 const db1 = false
+
+/* vim: set noai ts=4 sw=4: */
