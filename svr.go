@@ -40,10 +40,10 @@ package main
 //	----------------					---------			-------------		------			-----------
 //		./HashString						15min			25min				8min			5min
 //		./ReadCfg							20min			45min				10min			9min
-//		./Graceful						2hrs			4hrs											<<TODO>>
+//		./Graceful						2hrs			4hrs					1:29min						<<TODO -- needs cleanup>>
 //	main.go									30min			30min				22min			44min
 //
-//	Makefile - with examples and tests					2hrs
+//	Makefile - with examples and tests					2hrs												<<TODO -- this is what we are working on>>
 //	Documentation - 					1hrs
 //		Edit 							1hrs
 //
