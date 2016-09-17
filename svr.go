@@ -43,9 +43,12 @@ package main
 //		./Graceful						2hrs			4hrs					1:29min						<<TODO -- needs cleanup>>
 //	main.go									30min			30min				22min			44min
 //
-//	Makefile - with examples and tests					2hrs												<<TODO -- this is what we are working on>>
+//	Makefile - with examples and tests					2hrs					2:35						<<TODO -- this is what we are working on>>
 //	Documentation - 					1hrs
 //		Edit 							1hrs
+//
+// ===========================================================================================================
+//	Sums								4:05          	6:40                    4:39            57			+= 5:35
 //
 // Estimate Total Project Time: Approx: 8-14hrs
 // Actual Total Project Time: 10.2 hrs
@@ -63,11 +66,6 @@ import (
 	"www.2c-why.com/jump-cloud/svr/ReadCfg"
 )
 
-// "www.2c-why.com/jump-cloud/svr/Graceful"
-// "www.2c-why.com/jump-cloud/svr/HashString"
-
-var ShutdownStarted = false
-
 func SetHeadersForJSON(www http.ResponseWriter, req *http.Request) {
 	www.Header().Set("Content-Type", "application/json")
 	SetHeadersNoCache(www, req)
@@ -79,23 +77,20 @@ func SetHeadersNoCache(www http.ResponseWriter, req *http.Request) {
 	www.Header().Set("Expires", "0")                                         // Proxies.
 }
 
-//
-func respHandlerShutdown(www http.ResponseWriter, req *http.Request) {
-	ShutdownStarted = true
-	SetHeadersForJSON(www, req)
-	fmt.Fprintf(www, `{"status":"success","msg":"shutdown started"}`)
+func createRespHandlerShutdown(wg *WithGrace.WithGrace) func(www http.ResponseWriter, req *http.Request) {
+	return func(www http.ResponseWriter, req *http.Request) {
+		SetHeadersForJSON(www, req)
+		fmt.Fprintf(www, `{"status":"success","msg":"shutdown started"}`)
+		wg.GracefulShutdownServer()
+	}
 }
 
 func respHandlerStatus(www http.ResponseWriter, req *http.Request) {
 	SetHeadersForJSON(www, req)
-	if ShutdownStarted {
-		fmt.Fprintf(www, `{"status":"shudown-pending"}`)
-	} else {
-		fmt.Fprintf(www, `{"status":"success"}`)
-	}
+	fmt.Fprintf(www, `{"status":"success"}`)
 }
 
-func createRespHandlerSlow(SleepSeconds time.Duration) func(www http.ResponseWriter, req *http.Request) {
+func createRespHandlerSlow(SleepSeconds time.Duration, wg *WithGrace.WithGrace) func(www http.ResponseWriter, req *http.Request) {
 	return func(www http.ResponseWriter, req *http.Request) {
 		if req.Method == "POST" || req.Method == "GET" {
 			req.ParseForm()
@@ -134,24 +129,28 @@ func createRespHandlerSlow(SleepSeconds time.Duration) func(www http.ResponseWri
 // -------------------------------------------------------------------------------------------------
 func main() {
 
+	fmt.Printf("Version 004\n")
+
 	// xyzzy - Could use some command line ars at this point
 
 	cfg := ReadCfg.ReadCfg("./cfg.json")
-
-	http.HandleFunc("/api/graceful_shutdown", respHandlerShutdown)
-	http.HandleFunc("/api/shutdown", respHandlerShutdown)
-	http.HandleFunc("/api/status", respHandlerStatus)
-	http.HandleFunc("/", createRespHandlerSlow(cfg.SleepTime))
-
-	// log.Fatal(http.ListenAndServe(cfg.HostPort, nil))
+	// func NewWithGraceListener(netName, laddr string) (rv *WithGrace, err error) {
 	wg, err := WithGrace.NewWithGraceListener("tcp", cfg.HostPort)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	http.HandleFunc("/api/graceful_shutdown", createRespHandlerShutdown(wg))
+	http.HandleFunc("/api/shutdown", createRespHandlerShutdown(wg))
+	http.HandleFunc("/api/status", respHandlerStatus)
+	http.HandleFunc("/", createRespHandlerSlow(cfg.SleepTime, wg))
+
+	// log.Fatal(http.ListenAndServe(cfg.HostPort, nil))
 	err = wg.ListenAndServeGracefully()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Message: %s\n", err)
 	}
+	wg.WaitForTheEnd()
 }
 
 const db1 = false
