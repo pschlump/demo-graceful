@@ -35,8 +35,8 @@ package main
 // 		curl —data "password=angryMonkey" http://localhost:8080/api/graceful-shutdown
 //	4. Also allow for catching of a "signal", $ kill -HUP 22182, (See: test5)			-- done --
 //	5. Testing of shutdown process	(See:test3)											-- done --
-//	6. Pull in libary and create ./godebug with colors, windows, LF											<<TODO>>
-//	7. CLI options with -D for debug																		<<TODO>>
+//	6. Pull in libary and create ./godebug with colors, windows, LF						-- done --
+//	7. CLI options with -D for debug													-- done --
 //
 // Code breakdown
 //	Component							Time Est			Test Time Est		Actual			Actual Test
@@ -46,15 +46,15 @@ package main
 //		./Graceful						2hrs			4hrs					2:29min
 //	main.go									30min			30min				22min			44min
 //
-//	Makefile - with examples and tests					2hrs					2:35						<<this includes a bunch of testing>>
-//	Documentation - 					1hrs																<<TODO>>
-//		Edit 							1hrs																<<TODO>>
+//	Makefile - with examples and tests					2hrs					2:35						<<Note:this includes a bunch of testing>>
+//	Documentation - 					1hrs											-- done --
+//		Edit 							1hrs											-- done --
 //
 // ===========================================================================================================
 //	Sums								4:05          	6:40                    5:39            57			+= 6:35
 //
-// Estimate Total Project Time: Approx: 8-14hrs
-// Actual Total Project Time: 10.2 hrs
+// Estimate Total Project Time: Approx: 7-10hrs
+// Actual Total Project Time: 6.5 hrs
 //
 
 import (
@@ -63,12 +63,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
-	"www.2c-why.com/jump-cloud/svr/Graceful"
-	"www.2c-why.com/jump-cloud/svr/HashString"
-	"www.2c-why.com/jump-cloud/svr/ReadCfg"
-	"www.2c-why.com/jump-cloud/svr/godebug"
+	"github.com/pschlump/demo-graceful/Graceful"
+	"github.com/pschlump/demo-graceful/HashString"
+	"github.com/pschlump/demo-graceful/ReadCfg"
+	"github.com/pschlump/demo-graceful/godebug"
 )
 
 func SetHeadersForJSON(www http.ResponseWriter, req *http.Request) {
@@ -133,16 +134,24 @@ func createRespHandlerSlow(SleepSeconds time.Duration, wg *WithGrace.WithGrace) 
 
 var Cfg = flag.String("cfg", "./cfg.json", "Configuration File, default './cfg.json'")
 var Debug = flag.String("debug", "", "Debug Flags")
+var Version = flag.Bool("version", false, "Show the version")
+var ThisOne = flag.Bool("this-one", false, "ignored flag - used for testing")
 
 func init() {
 	flag.StringVar(Cfg, "c", "./cfg.json", "Configuration File, default './cfg.json'")
 	flag.StringVar(Debug, "D", "", "Debug Flags")
+	flag.BoolVar(Version, "v", false, "Show the version")
 }
 
 // -------------------------------------------------------------------------------------------------
 func main() {
 
-	fmt.Printf("Version: 018\n")
+	flag.Parse()
+
+	if *Version {
+		fmt.Printf("Version: 0.1.9\n")
+		os.Exit(0)
+	}
 
 	cfg := ReadCfg.ReadCfg(*Cfg)
 	godebug.SetDebugFlags(*Debug)

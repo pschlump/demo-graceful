@@ -23,12 +23,6 @@ func DebugOn(s string) bool {
 	return debugFlag[s]
 }
 
-var ColorRed = "\033[31;40m"
-var ColorYellow = "\033[33;40m"
-var ColorGreen = "\033[32;40m"
-var ColorCyan = "\033[36;40m"
-var ColorReset = "\033[0m"
-
 // LF()  Return the File name and Line no as a string.
 func LF(d ...int) string {
 	depth := 1
@@ -84,3 +78,5 @@ func InArrayInt(s int, arr []int) int {
 	}
 	return -1
 }
+
+/* vim: set noai ts=4 sw=4: */

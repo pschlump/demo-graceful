@@ -11,8 +11,23 @@ import (
 	"syscall"
 	"time"
 
-	"www.2c-why.com/jump-cloud/svr/godebug"
+	"github.com/pschlump/demo-graceful/godebug"
 )
+
+//
+// This is not an exact copy but the technique described is from:
+//
+//   http://blog.nella.org/zero-downtime-upgrades-of-tcp-servers-in-go/		-- Overview
+//	 https://github.com/fvbock/endless										-- MIT Licensed
+//	 http://grisha.org/blog/2014/06/03/graceful-restart-in-golang/			-- Nice Explanation of how/why it works
+//	 https://github.com/fvbock/endless										-- MIT Licensed
+//	 https://rcrowley.org/articles/golang-graceful-stop.html				-- some other licnese
+//	 https://github.com/tylerb/graceful										-- MIT Licensed
+//
+// I use a modified version of the "endless" library in my own server, http://github.com/pschlump/Go-FTL
+// It is also not clear to me how this is going to interact with HTTP2.0 and continuously open connections
+// to the client.  I know that "graceful" has a bunch of speical code in it for shutdown with HTTP2.0.
+//
 
 type WithGrace struct {
 	net.Listener                    // standard libary listener embeded
@@ -33,7 +48,6 @@ type WithGraceConn struct {
 var _ net.Listener = (*WithGrace)(nil)
 var _ net.Conn = (*WithGraceConn)(nil)
 
-// var ErrTypeConversion = errors.New("net.Listen returned an invalid type - can not convert")
 var ErrShutdownPending = errors.New("Shutdown in progress - no new connections accepted")
 var ErrShutdownError = errors.New("Shutdown in started - no new connections accepted")
 
@@ -168,3 +182,5 @@ func (wg *WithGrace) WaitForTheEnd() {
 		fmt.Printf("Before=%d After=%d\n", wg.nBefore, wg.nAfter)
 	}
 }
+
+/* vim: set noai ts=4 sw=4: */
