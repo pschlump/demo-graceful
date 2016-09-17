@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/pschlump/MiscLib"
-	"github.com/pschlump/godebug"
+	"www.2c-why.com/jump-cloud/svr/godebug"
 )
 
 type WithGrace struct {
@@ -50,9 +51,24 @@ func NewWithGraceListener(netName, laddr string) (wg *WithGrace, err error) {
 
 	go func() {
 		_ = <-wg.shutdownSignaled
-		fmt.Printf("%sShutdown Signal Received, AT:%s%s\n", MiscLib.ColorYellow, godebug.LF(), MiscLib.ColorReset)
+		if godebug.DebugOn("grace-db1") {
+			fmt.Printf("%sShutdown Signal Received, AT:%s%s\n", godebug.ColorYellow, godebug.LF(), godebug.ColorReset)
+		}
 		wg.shutdown = true
 		wg.shutdownSignaled <- wg.Listener.Close()
+	}()
+
+	go func() {
+		// Set up channel on which to send signal notifications.  We must use a buffered channel or risk missing the signal
+		// if we're not ready to receive when the signal is sent.
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGHUP)
+
+		s := <-c // Block until a signal is received.
+		if godebug.DebugOn("grace-db1") {
+			fmt.Printf("%sGot signal:%v%s\n", godebug.ColorRed, s, godebug.ColorReset)
+		}
+		wg.GracefulShutdownServer()
 	}()
 
 	return
@@ -61,7 +77,9 @@ func NewWithGraceListener(netName, laddr string) (wg *WithGrace, err error) {
 func (wg *WithGrace) Accept() (newConn net.Conn, err error) {
 
 	if wg.shutdown {
-		fmt.Printf("%sShutdown Pending, request ignored, AT:%s%s\n", MiscLib.ColorRed, godebug.LF(), MiscLib.ColorReset)
+		if godebug.DebugOn("grace-db1") {
+			fmt.Printf("%sShutdown Pending, request ignored, AT:%s%s\n", godebug.ColorRed, godebug.LF(), godebug.ColorReset)
+		}
 		return nil, ErrShutdownPending
 	}
 
@@ -70,7 +88,9 @@ func (wg *WithGrace) Accept() (newConn net.Conn, err error) {
 		return
 	}
 
-	fmt.Printf("%sNew Connection Returned, AT:%s%s\n", MiscLib.ColorGreen, godebug.LF(), MiscLib.ColorReset)
+	if godebug.DebugOn("grace-db1") {
+		fmt.Printf("%sNew Connection Returned, AT:%s%s\n", godebug.ColorGreen, godebug.LF(), godebug.ColorReset)
+	}
 	newConn = WithGraceConn{Conn: t, wg: wg}
 
 	wg.startHandler()
@@ -79,33 +99,47 @@ func (wg *WithGrace) Accept() (newConn net.Conn, err error) {
 
 func (w WithGraceConn) Close() error {
 	w.wg.finishHandler()
+	if godebug.DebugOn("grace-db1") {
+		fmt.Printf("Close Called, AT:%s\n", godebug.LF())
+	}
 	return w.Conn.Close()
 }
 
 func (wg *WithGrace) Close() error {
+	if godebug.DebugOn("grace-db1") {
+		fmt.Printf("%sOther Close Called ---- TOP , AT:%s%s\n", godebug.ColorCyan, godebug.LF(), godebug.ColorReset)
+	}
 	if wg.shutdown {
 		return syscall.EINVAL
+	}
+	if godebug.DebugOn("grace-db1") {
+		fmt.Printf("Other Close Called, AT:%s\n", godebug.LF())
 	}
 	wg.shutdownSignaled <- nil
 	return <-wg.shutdownSignaled
 }
 
 func (wg *WithGrace) GracefulShutdownServer() {
-	fmt.Printf("%sShutdown Called For !!!!!!!!!!!!!!!!!!!, AT:%s%s\n", MiscLib.ColorYellow, godebug.LF(), MiscLib.ColorReset)
+	if godebug.DebugOn("grace-db1") {
+		fmt.Printf("%sShutdown Called For, AT:%s%s\n", godebug.ColorYellow, godebug.LF(), godebug.ColorReset)
+	}
 	wg.shutdownSignaled <- ErrShutdownError
 }
 
 func (wg *WithGrace) startHandler() {
-	fmt.Printf("ADD\n")
+	if godebug.DebugOn("grace-db1") {
+		fmt.Printf("ADD\n")
+	}
+	wg.nBefore++
 	wg.waitForExit.Add(1)
 }
 
 func (wg *WithGrace) finishHandler() {
-	fmt.Printf("SUB\n")
 	if wg.shutdown {
 		wg.nAfter++
-	} else {
-		wg.nBefore++
+	}
+	if godebug.DebugOn("grace-db1") {
+		fmt.Printf("SUB %d %d\n", wg.nBefore, wg.nAfter)
 	}
 	wg.waitForExit.Done()
 }
@@ -120,7 +154,8 @@ func (wg *WithGrace) ListenAndServeGracefully() (err error) {
 
 	wg.waitForExit.Add(1)
 	go func() {
-		defer wg.waitForExit.Done()
+		// defer wg.waitForExit.Done()
+		defer wg.finishHandler()
 		err = server.Serve(wg)
 	}()
 
@@ -129,5 +164,7 @@ func (wg *WithGrace) ListenAndServeGracefully() (err error) {
 
 func (wg *WithGrace) WaitForTheEnd() {
 	wg.waitForExit.Wait()
-	fmt.Printf("Before=%d After=%d\n", wg.nBefore, wg.nAfter)
+	if godebug.DebugOn("grace-db1") {
+		fmt.Printf("Before=%d After=%d\n", wg.nBefore, wg.nAfter)
+	}
 }

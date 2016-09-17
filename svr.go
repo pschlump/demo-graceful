@@ -29,26 +29,29 @@ package main
 //	5. Pull base64 encode from the AES/SRP stuff										-- done --
 //
 // TODO Tests
-//	1. Check on multiple connections simultaneously
-//	2. Graceful shutdown
+//	1. Check on multiple connections simultaneously	(See:test3)							-- done --
+//	2. Graceful shutdown (See: test1, test2)											-- done --
+//	3. Test correct return results (See: test4)											-- done --
 // 		curl —data "password=angryMonkey" http://localhost:8080/api/graceful-shutdown
-//		Also allow for catching of a "signal"
-//	3. Testing of shutdown process
+//	4. Also allow for catching of a "signal", $ kill -HUP 22182, (See: test5)			-- done --
+//	5. Testing of shutdown process	(See:test3)											-- done --
+//	6. Pull in libary and create ./godebug with colors, windows, LF											<<TODO>>
+//	7. CLI options with -D for debug																		<<TODO>>
 //
 // Code breakdown
 //	Component							Time Est			Test Time Est		Actual			Actual Test
 //	----------------					---------			-------------		------			-----------
 //		./HashString						15min			25min				8min			5min
 //		./ReadCfg							20min			45min				10min			9min
-//		./Graceful						2hrs			4hrs					1:29min						<<TODO -- needs cleanup>>
+//		./Graceful						2hrs			4hrs					2:29min
 //	main.go									30min			30min				22min			44min
 //
-//	Makefile - with examples and tests					2hrs					2:35						<<TODO -- this is what we are working on>>
-//	Documentation - 					1hrs
-//		Edit 							1hrs
+//	Makefile - with examples and tests					2hrs					2:35						<<this includes a bunch of testing>>
+//	Documentation - 					1hrs																<<TODO>>
+//		Edit 							1hrs																<<TODO>>
 //
 // ===========================================================================================================
-//	Sums								4:05          	6:40                    4:39            57			+= 5:35
+//	Sums								4:05          	6:40                    5:39            57			+= 6:35
 //
 // Estimate Total Project Time: Approx: 8-14hrs
 // Actual Total Project Time: 10.2 hrs
@@ -56,6 +59,7 @@ package main
 
 import (
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -64,6 +68,7 @@ import (
 	"www.2c-why.com/jump-cloud/svr/Graceful"
 	"www.2c-why.com/jump-cloud/svr/HashString"
 	"www.2c-why.com/jump-cloud/svr/ReadCfg"
+	"www.2c-why.com/jump-cloud/svr/godebug"
 )
 
 func SetHeadersForJSON(www http.ResponseWriter, req *http.Request) {
@@ -97,7 +102,7 @@ func createRespHandlerSlow(SleepSeconds time.Duration, wg *WithGrace.WithGrace) 
 			Password := req.Form.Get("password")
 			Fmt := req.Form.Get("fmt")
 
-			if db1 {
+			if godebug.DebugOn("db1") {
 				fmt.Println("password:", req.Form.Get("password"))
 				fmt.Println("Method:", req.Method)
 			}
@@ -126,14 +131,22 @@ func createRespHandlerSlow(SleepSeconds time.Duration, wg *WithGrace.WithGrace) 
 	}
 }
 
+var Cfg = flag.String("cfg", "./cfg.json", "Configuration File, default './cfg.json'")
+var Debug = flag.String("debug", "", "Debug Flags")
+
+func init() {
+	flag.StringVar(Cfg, "c", "./cfg.json", "Configuration File, default './cfg.json'")
+	flag.StringVar(Debug, "D", "", "Debug Flags")
+}
+
 // -------------------------------------------------------------------------------------------------
 func main() {
 
-	fmt.Printf("Version 004\n")
+	fmt.Printf("Version: 018\n")
 
-	// xyzzy - Could use some command line ars at this point
+	cfg := ReadCfg.ReadCfg(*Cfg)
+	godebug.SetDebugFlags(*Debug)
 
-	cfg := ReadCfg.ReadCfg("./cfg.json")
 	// func NewWithGraceListener(netName, laddr string) (rv *WithGrace, err error) {
 	wg, err := WithGrace.NewWithGraceListener("tcp", cfg.HostPort)
 	if err != nil {
@@ -152,7 +165,5 @@ func main() {
 	}
 	wg.WaitForTheEnd()
 }
-
-const db1 = false
 
 /* vim: set noai ts=4 sw=4: */

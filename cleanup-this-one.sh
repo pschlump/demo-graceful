@@ -13,6 +13,10 @@ else
 fi
 if [ -x ./svr ] ; then
 	./svr --this-one &
+	SVR_PID=$!
+	echo "$SVR_PID" >pid-of-svr
+	sleep 1
+	echo "wait 1 sec for server to start up"
 else
 	exit 1
 fi

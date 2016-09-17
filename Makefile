@@ -2,7 +2,7 @@
 all:
 	go build
 
-test: testSetup test1 test2 test3
+test: testSetup test1 test4 test2 test3
 	@echo PASS
 
 testSetup:
@@ -29,21 +29,17 @@ test2:
 	-curl -i -X GET 'http://localhost:8123/api/status' >out/test2.c.out 2>/dev/null
 
 test3:
-	@go build
 	@echo "Start server and run tests, multiple request finish after shutdown request"
 	@echo "Stop existing server, if any"
 	-@curl -i -X GET 'http://localhost:8123/api/shutdown' >/dev/null 2>/dev/null
 	@rm -f out/test3*.out
 	./cleanup-this-one.sh
-	sleep 1
 	-curl -i -X GET 'http://localhost:8123/api/status' >out/test3.a.out 2>/dev/null
 	-curl -i -X GET 'http://localhost:8123/?password=am1' >out/test3.b.out 2>/dev/null &
 	-curl -i -X GET 'http://localhost:8123/?password=am2' >out/test3.c.out 2>/dev/null &
 	-curl -i -X GET 'http://localhost:8123/?password=am3' >out/test3.d.out 2>/dev/null &
 	-curl -i -X GET 'http://localhost:8123/?password=am4' >out/test3.e.out 2>/dev/null &
-	@sleep 1
 	curl -i -X GET 'http://localhost:8123/api/shutdown' >out/test3.f.out 2>/dev/null 
-	@sleep 1
 	-curl -i -X GET 'http://localhost:8123/?password=am5' >out/test3.g.out 2>out/test3.g.err &
 	-curl -i -X GET 'http://localhost:8123/?password=am6' >out/test3.h.out 2>out/test3.h.err &
 	-curl -i -X GET 'http://localhost:8123/?password=am7' >out/test3.i.out 2>out/test3.i.err &
@@ -60,3 +56,17 @@ test3:
 	grep 'Connection refused' out/test3.i.err >/dev/null
 	grep 'Connection refused' out/test3.j.err >/dev/null
 
+test4:
+	@rm -f out/test4*.out
+	./cleanup-this-one.sh
+	curl -i -X GET 'http://localhost:8123/?password=angryMonkey' >out/test4.a.out 2>/dev/null 
+	tail -1 out/test4.a.out >out/test4.b.out
+	diff -w ref/test4.a.out out/test4.b.out
+
+test5:
+	@rm -f out/test4*.out
+	./cleanup-this-one.sh
+	kill -HUP `cat pid-of-svr`
+	./test5.sh
+
+	
