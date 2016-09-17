@@ -62,4 +62,9 @@ If you just run the server:
 It will by default use port 8080.
 
 
+TODO
+----
+
+1. Better naming of packages like ./Graceful.  It will take me a coupe of days before I can come up with nice names.
+2. Automatic testing for the code in ./Graceful.   Other than the system-level test in the Makefile it is not clear to me how you write an automatic test in go for this.
 
