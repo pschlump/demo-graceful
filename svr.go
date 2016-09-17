@@ -19,13 +19,14 @@ package main
 // To submit your work please invite ppg to a public GitHub project, and be sure to document any configuration or run instructions.
 //
 
+//
 // TODO
-//	1. Pull out simple server that has a 1 sec delay - use that for the 5 second delay
-//		1. Remember to change delay to 5 sec.
-//	2. Check "curl" results in a "POST"
-//  3. Configuration option to set host:port
-//	4. Build StringHash512 - that uses SHA512 - test it with this value
-//	5. Pull base64 encode from the AES/SRP stuff
+//	1. Pull out simple server that has a 1 sec delay - use that for the 5 second delay	-- done --
+//		1. Remember to change delay to 5 sec. 											-- done --
+//	2. Check "curl" results in a "POST" 												-- done --
+//  3. Configuration option to set host:port 											-- done --
+//	4. Build StringHash512 - that uses SHA512 - test it with this value					-- done --
+//	5. Pull base64 encode from the AES/SRP stuff										-- done --
 //
 // TODO Tests
 //	1. Check on multiple connections simultaneously
@@ -35,12 +36,13 @@ package main
 //	3. Testing of shutdown process
 //
 // Code breakdown
-//	Component							Time Est			Test Time Est		Actual			Test
-//	----------------					---------			-------------		------			----
+//	Component							Time Est			Test Time Est		Actual			Actual Test
+//	----------------					---------			-------------		------			-----------
 //		./HashString						15min			25min				8min			5min
-//		./ReadCfg							20min			45min				10min			28min
-//		./Graceful						2hrs			4hrs
+//		./ReadCfg							20min			45min				10min			9min
+//		./Graceful						2hrs			4hrs											<<TODO>>
 //	main.go									30min			30min				22min			44min
+//
 //	Makefile - with examples and tests					2hrs
 //	Documentation - 					1hrs
 //		Edit 							1hrs
@@ -56,10 +58,12 @@ import (
 	"net/http"
 	"time"
 
+	"www.2c-why.com/jump-cloud/svr/Graceful"
 	"www.2c-why.com/jump-cloud/svr/HashString"
 	"www.2c-why.com/jump-cloud/svr/ReadCfg"
 )
 
+// "www.2c-why.com/jump-cloud/svr/Graceful"
 // "www.2c-why.com/jump-cloud/svr/HashString"
 
 var ShutdownStarted = false
@@ -139,7 +143,15 @@ func main() {
 	http.HandleFunc("/api/status", respHandlerStatus)
 	http.HandleFunc("/", createRespHandlerSlow(cfg.SleepTime))
 
-	log.Fatal(http.ListenAndServe(cfg.HostPort, nil))
+	// log.Fatal(http.ListenAndServe(cfg.HostPort, nil))
+	wg, err := WithGrace.NewWithGraceListener("tcp", cfg.HostPort)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = wg.ListenAndServeGracefully()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 const db1 = false
