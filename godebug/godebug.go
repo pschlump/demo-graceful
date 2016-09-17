@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// Simpel set of code for debug flags comma seperated.
+
 var debugFlag map[string]bool
 
 func init() {

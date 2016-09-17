@@ -3,6 +3,7 @@ package HashStrings512
 //
 // Test of sha512 hashing
 //
+//
 
 import (
 	"fmt"

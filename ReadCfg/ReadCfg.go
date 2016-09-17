@@ -1,5 +1,7 @@
 package ReadCfg
 
+//
+
 import (
 	"encoding/json"
 	"fmt"

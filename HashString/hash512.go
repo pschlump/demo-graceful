@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+//
+
 // Sha512 takes a string and returns the sha512 hash of that string in hex
 func Sha512(s string) (rv string) {
 	rv = HashStrings512(s)

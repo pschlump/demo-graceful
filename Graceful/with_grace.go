@@ -28,6 +28,7 @@ import (
 // It is also not clear to me how this is going to interact with HTTP2.0 and continuously open connections
 // to the client.  I know that "graceful" has a bunch of speical code in it for shutdown with HTTP2.0.
 //
+//
 
 type WithGrace struct {
 	net.Listener                    // standard libary listener embeded

@@ -3,6 +3,7 @@ package ReadCfg
 //
 // Test of reading config file, dependent on ./cfg.json
 //
+//
 
 import "testing"
 

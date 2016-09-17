@@ -46,10 +46,20 @@ To Build
 To Test
 -------
 
+The tests in the Makefile assume using port 8123 on the local host.  The configuration file
+is ./make-test.json. 
+
 	$ make test1 test2
 
 If that looks like it works then.
 
 	$ make test
+
+If you just run the server:
+
+	$ ./demo-graceful
+
+It will by default use port 8080.
+
 
 
